@@ -1,0 +1,82 @@
+---
+- name: create software dir
+  file:
+    path: /home/zzw/software
+    state: directory
+- name: remove the old file
+  file:
+    path: /usr/local/redis
+    state: absent
+- name: create redis dir
+  file:
+    path: /usr/local/redis
+    state: directory
+- name: prepare the environment
+  yum: name={{ item }} state=present
+  with_items:
+    - gcc
+    - gcc-*
+    - automake
+    - autoconf
+    - libtool
+    - make
+    - zlib
+    - zlib-devel
+    - glibc-*
+    - tcl
+  ignore_errors: yes
+- name: get redis source code
+#  unarchive:
+#    src: http://download.redis.io/releases/redis-5.0.4.tar.gz
+#    dest: /home/zzw/software
+#    remote_src: yes
+#  copy:
+#    src: redis/redis-5.0.4
+#    dest: /home/zzw/software
+#    owner: zzw
+#    group: zzw
+  unarchive:
+    src: redis/redis-5.0.4.tar.gz
+    dest: /home/zzw/software
+- name: install redis
+  shell: cd /home/zzw/software/redis-5.0.4 && make PREFIX=/usr/local/redis install
+  become: True
+- name: create /etc/redis
+  file:
+    path: /etc/redis
+    state: directory
+  become: True
+- name: init the redis_conf
+  template:
+    src: redis/redis.conf
+    dest: /etc/redis/redis.conf
+  become: True
+- name: init the redis service script
+  template:
+    src: redis/redis_init_script
+    dest: /etc/init.d/redis
+    mode: 0755
+  become: True
+#- name: remove redis-server soft link
+#  file:
+#    path: /usr/local/bin/redis-server
+#    state: absent
+#- name: remove redis-cli soft link
+#  file:
+#    path: /usr/local/bin/redis-cli
+#    state: absent
+- name: create redis-server soft link
+  file:
+    src: /usr/local/redis/bin/redis-server
+    dest: /usr/local/bin/redis-server
+    state: link
+  become: True
+- name: create redis-cli soft link
+  file:
+    src: /usr/local/redis/bin/redis-cli
+    dest: /usr/local/bin/redis-cli
+    state: link
+  become: True
+- name: start redis
+  shell: /etc/init.d/redis start
+  become: True
