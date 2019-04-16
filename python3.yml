@@ -54,13 +54,13 @@
 - name: create python3.6.7 link
   file:
     src: /usr/local/python3.6.7/bin/python3.6
-    dest: /bin/python3
+    dest: /bin/python3.6.7
     state: link
   become: True
 - name: create pip link
   file:
     src: /usr/local/python3.6.7/bin/pip3
-    dest: /bin/pip
+    dest: /bin/pip3.6.7
     state: link
   become: True
 

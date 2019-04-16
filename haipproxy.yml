@@ -45,11 +45,12 @@
         dest: "{{ software_path }}"
         remote_src: yes
     - name: install Twisted
-      shell: python3 setup.py install
+      shell: python3.6.7 setup.py install
       args:
         chdir: "{{ software_path }}/Twisted-19.2.0"
     - name: pip requirements
       pip:
         requirements: "{{ haipproxy_path }}/requirements.txt"
+        executable: pip3.6.7
       become: True
 
