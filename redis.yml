@@ -1,8 +1,4 @@
 ---
-- name: create software dir
-  file:
-    path: /home/zzw/software
-    state: directory
 - name: remove the old file
   file:
     path: /usr/local/redis
@@ -11,7 +7,7 @@
   file:
     path: /usr/local/redis
     state: directory
-- name: prepare the environment
+- name: prepare the environment in CentOS
   yum: name={{ item }} state=present
   with_items:
     - gcc
@@ -24,22 +20,28 @@
     - zlib-devel
     - glibc-*
     - tcl
-  ignore_errors: yes
+  when: ansible_os_family == "RedHat"
+- name: prepare the environment in Ubuntu
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - gcc
+    - automake
+    - autoconf
+    - libtool
+    - make
+    - libzzip-0-13
+    - libzzip-dev
+    - glibc-*
+    - tcl
+  when: ansible_os_family == "Debian"
 - name: get redis source code
-#  unarchive:
-#    src: http://download.redis.io/releases/redis-5.0.4.tar.gz
-#    dest: /home/zzw/software
-#    remote_src: yes
-#  copy:
-#    src: redis/redis-5.0.4
-#    dest: /home/zzw/software
-#    owner: zzw
-#    group: zzw
   unarchive:
     src: redis/redis-5.0.4.tar.gz
-    dest: /home/zzw/software
+    dest: "{{ software_path }}"
+    group: zzw
+    owner: zzw
 - name: install redis
-  shell: cd /home/zzw/software/redis-5.0.4 && make PREFIX=/usr/local/redis install
+  shell: "cd {{ software_path }}/redis-5.0.4 && make PREFIX=/usr/local/redis install"
   become: True
 - name: create /etc/redis
   file:
@@ -57,14 +59,6 @@
     dest: /etc/init.d/redis
     mode: 0755
   become: True
-#- name: remove redis-server soft link
-#  file:
-#    path: /usr/local/bin/redis-server
-#    state: absent
-#- name: remove redis-cli soft link
-#  file:
-#    path: /usr/local/bin/redis-cli
-#    state: absent
 - name: create redis-server soft link
   file:
     src: /usr/local/redis/bin/redis-server

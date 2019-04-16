@@ -6,50 +6,50 @@
     redis_host: 127.0.0.1
     redis_port: 6379
     redis_password: ''
+    haipproxy_path: "/home/zzw/haipproxy/haipproxy-0.1"
+    software_path: "/home/zzw/software"
   tasks:
+    - name: create software dir
+      file:
+        path: "{{ software_path }}"
+        state: directory
+    - name: install bzip2 in CentOS
+      yum:
+        name: bzip2
+      become: True
+      when: ansible_os_family == "RedHat"
+    - name: install bzip2 in Ubuntu
+      apt:
+        name: bzip2
+      become: True
+      when: ansible_os_family == "Debian"
+    - include: python3.yml
     - name: create haipproxy directory
       file:
         path: /home/zzw/haipproxy
         state: directory
-#    - name: download haipproxy source code
-#      get_url: url=https://github.com/SpiderClub/haipproxy/archive/v0.1.tar.gz dest=/home/zzw/software/haipproxy-v0.1.tar.gz
     - name: get haipproxy source code
       unarchive:
         src: https://github.com/SpiderClub/haipproxy/archive/v0.1.tar.gz
         dest: /home/zzw/haipproxy
         remote_src: yes
     - include: redis.yml
-#    - name: install scrapy-splash
-#      pip:
-#        name: scrapy-splash
-#      become: True
-#    - name: start scrapy-splash
-#      raw: python3 -m splash.server --port=8050
-#    - name: haipproxy setting
-#      template:
-#        src: haipproxy/settings.py
-#        dest: /home/zzw/haipproxy/haipproxy-0.1/config/settings.py
-    - name: remove docker
-      yum:
-        name: docker-ce
-        state: absent
+    - name: haipproxy setting
+      template:
+        src: haipproxy/settings.py
+        dest: "{{ haipproxy_path }}/config/settings.py"
+    - include: splash.yml
+    - name: unarchive Twisted
+      unarchive:
+        src: https://files.pythonhosted.org/packages/f8/2b/a80a70f71eb2b86992ffa5aaae41457791ae67faa70927fd16b76127c2b7/Twisted-19.2.0.tar.bz2
+        dest: "{{ software_path }}"
+        remote_src: yes
+    - name: install Twisted
+      shell: python3 setup.py install
+      args:
+        chdir: "{{ software_path }}/Twisted-19.2.0"
+    - name: pip requirements
+      pip:
+        requirements: "{{ haipproxy_path }}/requirements.txt"
       become: True
-    - name: install docker
-      yum:
-        name: docker-ce.x86_64
-        state: present
-        update_cache: yes
-      become: True
-    - name: start docker service
-      service:
-        name: docker
-        state: started
-      become: True
-    - name: pull docker splash image
-      shell: docker pull scrapinghub/splash
-      become: True
-    - name: start splash container
-      shell: docker run -it -p 8050:8050 scrapinghub/splash
-      become: True
-
 

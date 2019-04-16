@@ -1,0 +1,66 @@
+---
+- name: remove old file
+  file:
+    path: /usr/local/python3.6.7
+    state: absent
+  become: True
+- name: create python dir
+  file:
+    path: /usr/local/python3.6.7
+    state: directory
+  become: True
+- name: prepare the environment in CentOS
+  yum: name={{ item }} state=present update_cache=yes
+  register: result
+  with_items:
+    - gcc
+    - gcc-*
+    - automake
+    - autoconf
+    - libtool
+    - make
+    - zlib
+    - zlib-devel
+    - glibc-*
+    - tcl
+  when: ansible_os_family == "RedHat"
+- name: prepare the environment in Ubuntu
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - gcc
+    - automake
+    - autoconf
+    - libtool
+    - make
+    - libzzip-0-13
+    - libzzip-dev
+    - glibc-*
+    - tcl
+    - zlib1g
+    - zlib1g-dbg
+    - zlib1g-dev
+  when: ansible_os_family == "Debian"
+- name: get python3.6.7 source code
+  unarchive:
+    src: python/Python-3.6.7.tgz
+    dest: "{{ software_path }}"
+    group: zzw
+    owner: zzw
+- name: install python3.6.7
+  shell: ./configure --prefix=/usr/local/python3.6.7 && make && make install
+  args:
+    chdir: "{{ software_path }}/Python-3.6.7"
+  become: True
+- name: create python3.6.7 link
+  file:
+    src: /usr/local/python3.6.7/bin/python3.6
+    dest: /bin/python3
+    state: link
+  become: True
+- name: create pip link
+  file:
+    src: /usr/local/python3.6.7/bin/pip3
+    dest: /bin/pip
+    state: link
+  become: True
+
