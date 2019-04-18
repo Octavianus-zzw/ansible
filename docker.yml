@@ -1,0 +1,97 @@
+---
+#CentOS
+- name: remove docker in CentOS
+  yum:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - docker
+    - docker-client
+    - docker-client-latest
+    - docker-common
+    - docker-latest
+    - docker-latest-logrotate
+    - docker-logrotate
+    - docker-engine
+    - docker-ce
+  become: True
+  when: ansible_os_family == "RedHat"
+- name: docker prepare environment in CentOS
+  yum:
+    name: "{{ item }}"
+  with_items:
+    - yum-utils
+    - device-mapper-persistent-data
+    - lvm2
+  become: True
+  when: ansible_os_family == "RedHat"
+- name: docker set up the stable repository in CentOS
+  shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  become: True
+  when: ansible_os_family == "RedHat"
+- name: install docker in CentOS
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+  become: True
+  when: ansible_os_family == "RedHat"
+
+#Ubuntu
+- name: remove docker in Ubuntu
+  apt:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - docker
+    - docker-engine
+    - docker.io
+    - containerd
+    - runc
+  become: True
+  when: ansible_os_family == "Debian"
+- name: docker prepare environment in Ubuntu
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+  with_items:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg-agent
+    - software-properties-common
+  become: True
+  when: ansible_os_family == "Debian"
+- name: docker add official GPG key step1 in Ubuntu
+  shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  become: True
+  when: ansible_os_family == "Debian"
+- name: docker add official GPG key step2 in Ubuntu
+  shell: apt-key fingerprint 0EBFCD88
+  become: True
+  when: ansible_os_family == "Debian"
+- name: docker set up the stable repository in Ubuntu
+  shell: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  become: True
+  when: ansible_os_family == "Debian"
+- name: install docker in Ubuntu
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+  become: True
+  when: ansible_os_family == "Debian"
+
+- name: start docker service
+  service:
+    name: docker
+    state: started
+  become: True

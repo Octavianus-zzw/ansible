@@ -6,51 +6,92 @@
     redis_host: 127.0.0.1
     redis_port: 6379
     redis_password: ''
-    haipproxy_path: "/home/zzw/haipproxy/haipproxy-0.1"
+    haipproxy_path: "/home/zzw/haipproxy"
     software_path: "/home/zzw/software"
   tasks:
     - name: create software dir
       file:
         path: "{{ software_path }}"
         state: directory
-    - name: install bzip2 in CentOS
+        group: zzw
+        owner: zzw
+    - name: prepare environment in CentOS
       yum:
-        name: bzip2
+        name: "{{ item }}"
+      with_items:
+        - bzip2
+        - openssl-devel
+        - unzip.x86_64
+        - sqlite-devel
+        - git
       become: True
       when: ansible_os_family == "RedHat"
-    - name: install bzip2 in Ubuntu
+    - name: prepare environment in Ubuntu
       apt:
-        name: bzip2
+        name: "{{ item }}"
+      with_items:
+        - bzip2
+        - openssl
+        - libssl-dev
+        - zip
+        - unzip
+        - libsqlite3-dev
+        - git
       become: True
       when: ansible_os_family == "Debian"
     - include: python3.yml
-    - name: create haipproxy directory
+    - name: remove old code
       file:
-        path: /home/zzw/haipproxy
-        state: directory
+        path: "{{ haipproxy_path }}"
+        state: absent
     - name: get haipproxy source code
-      unarchive:
-        src: https://github.com/SpiderClub/haipproxy/archive/v0.1.tar.gz
-        dest: /home/zzw/haipproxy
-        remote_src: yes
+      git:
+        repo: "https://github.com/SpiderClub/haipproxy.git"
+        dest: "{{ haipproxy_path }}"
     - include: redis.yml
     - name: haipproxy setting
       template:
         src: haipproxy/settings.py
-        dest: "{{ haipproxy_path }}/config/settings.py"
+        dest: "{{ haipproxy_path }}/haipproxy/config/settings.py"
     - include: splash.yml
     - name: unarchive Twisted
       unarchive:
-        src: https://files.pythonhosted.org/packages/f8/2b/a80a70f71eb2b86992ffa5aaae41457791ae67faa70927fd16b76127c2b7/Twisted-19.2.0.tar.bz2
+        src: https://files.pythonhosted.org/packages/a2/37/298f9547606c45d75aa9792369302cc63aa4bbcf7b5f607560180dd099d2/Twisted-17.9.0.tar.bz2
         dest: "{{ software_path }}"
         remote_src: yes
     - name: install Twisted
       shell: python3.6.7 setup.py install
       args:
-        chdir: "{{ software_path }}/Twisted-19.2.0"
+        chdir: "{{ software_path }}/Twisted-17.9.0"
+      become: True
     - name: pip requirements
       pip:
         requirements: "{{ haipproxy_path }}/requirements.txt"
         executable: pip3.6.7
       become: True
+    - name: start haipproxy crawler crawler common
+      shell: nohup python3.6.7 crawler_booter.py --usage crawler common > crawler.log 2>&1 &
+      args:
+        chdir: "{{ haipproxy_path }}"
+        executable: /bin/bash
+    - name: start haipproxy scheduler crawler common
+      shell: nohup python3.6.7 scheduler_booter.py --usage crawler common > crawler_scheduler.log 2>&1 &
+      args:
+        chdir: "{{ haipproxy_path }}"
+        executable: /bin/bash
+    - name: start haipproxy crawler validator init
+      shell: nohup python3.6.7 crawler_booter.py --usage validator init > init_validator.log 2>&1 &
+      args:
+        chdir: "{{ haipproxy_path }}"
+        executable: /bin/bash
+    - name: start haipproxy crawler validator https
+      shell: nohup python3.6.7 crawler_booter.py --usage validator https > https_validator.log 2>&1&
+      args:
+        chdir: "{{ haipproxy_path }}"
+        executable: /bin/bash
+    - name: start haipproxy scheduler validator https
+      shell: nohup python3.6.7 scheduler_booter.py --usage validator https > validator_scheduler.log 2>&1 &
+      args:
+        chdir: "{{ haipproxy_path }}"
+        executable: /bin/bash
 

@@ -1,0 +1,93 @@
+---
+- hosts: haipproxy
+  remote_user: zzw
+  vars:
+    splash_url: "http://splash:8050"
+    redis_host: "redis"
+    haipproxy_path: "/home/zzw/haipproxy"
+    software_path: "/home/zzw/software"
+  tasks:
+    - name: create software dir
+      file:
+        path: "{{ software_path }}"
+        state: directory
+        group: zzw
+        owner: zzw
+    - name: prepare environment in CentOS
+      yum:
+        name: "{{ item }}"
+      with_items:
+        - git
+        - bzip2
+        - openssl-devel
+        - unzip.x86_64
+        - sqlite-devel
+        - python-devel.x86_64
+        - libffi-devel.x86_64
+        - gcc
+        - gcc-*
+        - automake
+        - autoconf
+        - libtool
+        - make
+        - glibc-devel.x86_64
+      become: True
+      when: ansible_os_family == "RedHat"
+    - name: prepare environment in Ubuntu
+      apt:
+        name: "{{ item }}"
+      with_items:
+        - git
+        - bzip2
+        - openssl
+        - libssl-dev
+        - zip
+        - unzip
+        - libsqlite3-dev
+        - libpython-dev
+        - python-dev
+        - libffi-dev
+        - gcc
+        - automake
+        - autoconf
+        - libtool
+        - make
+        - libc6-dev
+      become: True
+      when: ansible_os_family == "Debian"
+    - include: python3.yml
+    - include: docker.yml
+
+    - name: install docker-compose
+      shell: 'curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose'
+      become: True
+    - name: docker-compose add executable
+      shell: 'chmod +x /usr/local/bin/docker-compose'
+      become: True
+
+    - name: install docker-compose
+      pip:
+        name: docker-compose
+        executable: pip3.6.7
+        extra_args: -U
+      become: True
+    - name: link docker-compose
+      file:
+        src: /usr/local/python3.6.7/bin/docker-compose
+        dest: /usr/bin/docker-compose
+        state: link
+      become: True
+    - name: get haipproxy source code
+      git:
+        repo: "https://github.com/SpiderClub/haipproxy.git"
+        dest: "{{ haipproxy_path }}"
+    - name: haipproxy setting
+      template:
+        src: haipproxy/settings_docker.py
+        dest: "{{ haipproxy_path }}/haipproxy/config/settings.py"
+      become: True
+    - name: start haipproxy
+      shell: docker-compose up -d
+      args:
+        chdir: "{{ haipproxy_path }}"
+      become: True
