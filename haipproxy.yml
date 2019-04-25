@@ -18,6 +18,9 @@
     - name: prepare environment in CentOS
       yum:
         name: "{{ item }}"
+      register: yum_res
+      retries: 5
+      until: yum_res | success
       with_items:
         - bzip2
         - openssl-devel
@@ -29,6 +32,9 @@
     - name: prepare environment in Ubuntu
       apt:
         name: "{{ item }}"
+      register: apt_res
+      retries: 5
+      until: apt_res | success
       with_items:
         - bzip2
         - openssl
@@ -48,6 +54,9 @@
       git:
         repo: "https://github.com/SpiderClub/haipproxy.git"
         dest: "{{ haipproxy_path }}"
+      register: haipproxy_code_res
+      retries: 5
+      until: haipproxy_code_res | success
     - include: redis.yml
     - name: haipproxy setting
       template:
@@ -59,15 +68,24 @@
         src: https://files.pythonhosted.org/packages/a2/37/298f9547606c45d75aa9792369302cc63aa4bbcf7b5f607560180dd099d2/Twisted-17.9.0.tar.bz2
         dest: "{{ software_path }}"
         remote_src: yes
+      register: twisted_res
+      retries: 5
+      until: twisted_res | success
     - name: install Twisted
       shell: python3.6.7 setup.py install
       args:
         chdir: "{{ software_path }}/Twisted-17.9.0"
+      register: install_twisted_res
+      retries: 5
+      until: install_twisted_res | success
       become: True
     - name: pip requirements
       pip:
         requirements: "{{ haipproxy_path }}/requirements.txt"
         executable: pip3.6.7
+      register: pip_res
+      retries: 5
+      until: pip_res | success
       become: True
     - name: start haipproxy crawler crawler common
       shell: nohup python3.6.7 crawler_booter.py --usage crawler common > crawler.log 2>&1 &

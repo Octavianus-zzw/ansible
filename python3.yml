@@ -11,7 +11,9 @@
   become: True
 - name: prepare the environment in CentOS
   yum: name={{ item }} state=present update_cache=yes
-  register: result
+  register: python3_yum_res
+  retries: 5
+  until: python3_yum_res | success
   with_items:
     - gcc
     - gcc-*
@@ -26,6 +28,9 @@
   when: ansible_os_family == "RedHat"
 - name: prepare the environment in Ubuntu
   apt: name={{ item }} state=present update_cache=yes
+  register: python3_apt_res
+  retries: 5
+  until: python3_apt_res | success
   with_items:
     - gcc
     - automake

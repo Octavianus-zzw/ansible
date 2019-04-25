@@ -4,6 +4,9 @@
   yum:
     name: "{{ item }}"
     state: absent
+  register: docker_remove_yum_res
+  retries: 5
+  until: docker_remove_yum_res | success
   with_items:
     - docker
     - docker-client
@@ -19,6 +22,9 @@
 - name: docker prepare environment in CentOS
   yum:
     name: "{{ item }}"
+  register: docker_yum_res
+  retries: 5
+  until: docker_yum_res | success
   with_items:
     - yum-utils
     - device-mapper-persistent-data
@@ -27,6 +33,9 @@
   when: ansible_os_family == "RedHat"
 - name: docker set up the stable repository in CentOS
   shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  register: docker_yum_repository_res
+  retries: 5
+  until: docker_yum_repository_res | success
   become: True
   when: ansible_os_family == "RedHat"
 - name: install docker in CentOS
@@ -34,6 +43,9 @@
     name: "{{ item }}"
     state: present
     update_cache: yes
+  register: docker_yum_install_res
+  retries: 5
+  until: docker_yum_install_res
   with_items:
     - docker-ce
     - docker-ce-cli
@@ -46,6 +58,9 @@
   apt:
     name: "{{ item }}"
     state: absent
+  register: docker_remove_apt_res
+  retries: 5
+  until: docker_remove_apt_res | success
   with_items:
     - docker
     - docker-engine
@@ -58,6 +73,9 @@
   apt:
     name: "{{ item }}"
     update_cache: yes
+  register: docker_apt_res
+  retries: 5
+  until: docker_apt_res | success
   with_items:
     - apt-transport-https
     - ca-certificates
@@ -68,14 +86,23 @@
   when: ansible_os_family == "Debian"
 - name: docker add official GPG key step1 in Ubuntu
   shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  register: docker_apt_key_1_res
+  retries: 5
+  until: docker_apt_key_1_res | success
   become: True
   when: ansible_os_family == "Debian"
 - name: docker add official GPG key step2 in Ubuntu
   shell: apt-key fingerprint 0EBFCD88
+  register: docker_apt_key_2_res
+  retries: 5
+  until: docker_apt_key_2_res | success
   become: True
   when: ansible_os_family == "Debian"
 - name: docker set up the stable repository in Ubuntu
   shell: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  register: docker_apt_repository_res
+  retries: 5
+  until: docker_apt_repository_res | success
   become: True
   when: ansible_os_family == "Debian"
 - name: install docker in Ubuntu
@@ -83,6 +110,9 @@
     name: "{{ item }}"
     state: present
     update_cache: yes
+  register: docker_apt_install_res
+  retries: 5
+  until: docker_apt_install_res | success
   with_items:
     - docker-ce
     - docker-ce-cli

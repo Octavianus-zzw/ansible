@@ -9,6 +9,9 @@
     state: directory
 - name: prepare the environment in CentOS
   yum: name={{ item }} state=present
+  register: redis_yum_res
+  retries: 5
+  until: redis_yum_res | success
   with_items:
     - gcc
     - gcc-*
@@ -23,6 +26,9 @@
   when: ansible_os_family == "RedHat"
 - name: prepare the environment in Ubuntu
   apt: name={{ item }} state=present update_cache=yes
+  register: redis_apt_res
+  retries: 5
+  until: redis_apt_res
   with_items:
     - gcc
     - automake
